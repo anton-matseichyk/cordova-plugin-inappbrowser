@@ -330,7 +330,7 @@
     NSString* jsWrapper = nil;
 
     if ((command.callbackId != nil) && ![command.callbackId isEqualToString:@"INVALID"]) {
-        jsWrapper = [NSString stringWithFormat:@"_cdvIframeBridge.src='gap-iab://%@/'+encodeURIComponent(JSON.stringify([eval(%%@)]));", command.callbackId];
+        jsWrapper = [NSString stringWithFormat:@"_cdvIframeBridge.src='https://%@/'+encodeURIComponent(JSON.stringify([eval(%%@)]));", command.callbackId];
     }
     [self injectDeferredObject:[command argumentAtIndex:0] withWrapper:jsWrapper];
 }
@@ -340,7 +340,7 @@
     NSString* jsWrapper;
 
     if ((command.callbackId != nil) && ![command.callbackId isEqualToString:@"INVALID"]) {
-        jsWrapper = [NSString stringWithFormat:@"(function(d) { var c = d.createElement('script'); c.src = %%@; c.onload = function() { _cdvIframeBridge.src='gap-iab://%@'; }; d.body.appendChild(c); })(document)", command.callbackId];
+        jsWrapper = [NSString stringWithFormat:@"(function(d) { var c = d.createElement('script'); c.src = %%@; c.onload = function() { _cdvIframeBridge.src='https://%@'; }; d.body.appendChild(c); })(document)", command.callbackId];
     } else {
         jsWrapper = @"(function(d) { var c = d.createElement('script'); c.src = %@; d.body.appendChild(c); })(document)";
     }
@@ -352,7 +352,7 @@
     NSString* jsWrapper;
 
     if ((command.callbackId != nil) && ![command.callbackId isEqualToString:@"INVALID"]) {
-        jsWrapper = [NSString stringWithFormat:@"(function(d) { var c = d.createElement('style'); c.innerHTML = %%@; c.onload = function() { _cdvIframeBridge.src='gap-iab://%@'; }; d.body.appendChild(c); })(document)", command.callbackId];
+        jsWrapper = [NSString stringWithFormat:@"(function(d) { var c = d.createElement('style'); c.innerHTML = %%@; c.onload = function() { _cdvIframeBridge.src='https://%@'; }; d.body.appendChild(c); })(document)", command.callbackId];
     } else {
         jsWrapper = @"(function(d) { var c = d.createElement('style'); c.innerHTML = %@; d.body.appendChild(c); })(document)";
     }
@@ -364,7 +364,7 @@
     NSString* jsWrapper;
 
     if ((command.callbackId != nil) && ![command.callbackId isEqualToString:@"INVALID"]) {
-        jsWrapper = [NSString stringWithFormat:@"(function(d) { var c = d.createElement('link'); c.rel='stylesheet'; c.type='text/css'; c.href = %%@; c.onload = function() { _cdvIframeBridge.src='gap-iab://%@'; }; d.body.appendChild(c); })(document)", command.callbackId];
+        jsWrapper = [NSString stringWithFormat:@"(function(d) { var c = d.createElement('link'); c.rel='stylesheet'; c.type='text/css'; c.href = %%@; c.onload = function() { _cdvIframeBridge.src='https://%@'; }; d.body.appendChild(c); })(document)", command.callbackId];
     } else {
         jsWrapper = @"(function(d) { var c = d.createElement('link'); c.rel='stylesheet', c.type='text/css'; c.href = %@; d.body.appendChild(c); })(document)";
     }
@@ -395,11 +395,11 @@
  *
  * To trigger the bridge, the iframe (or any other resource) should attempt to load a url of the form:
  *
- * gap-iab://<callbackId>/<arguments>
+ * https://<callbackId>/<arguments>
  *
  * where <callbackId> is the string id of the callback to trigger (something like "InAppBrowser0123456789")
  *
- * If present, the path component of the special gap-iab:// url is expected to be a URL-escaped JSON-encoded
+ * If present, the path component of the special https:// url is expected to be a URL-escaped JSON-encoded
  * value to pass to the callback. [NSURL path] should take care of the URL-unescaping, and a JSON_EXCEPTION
  * is returned if the JSON is invalid.
  */
@@ -408,10 +408,14 @@
     NSURL* url = request.URL;
     BOOL isTopLevelNavigation = [request.URL isEqual:[request mainDocumentURL]];
 
-    // See if the url uses the 'gap-iab' protocol. If so, the host should be the id of a callback to execute,
+    // See if the url uses the 'https' protocol. If so, the host should be the id of a callback to execute,
     // and the path, if present, should be a JSON-encoded value to pass to the callback.
-    if ([[url scheme] isEqualToString:@"gap-iab"]) {
+    if ([[url scheme] isEqualToString:@"https"]) {
         NSString* scriptCallbackId = [url host];
+
+        scriptCallbackId = [scriptCallbackId stringByReplacingOccurrencesOfString:@"inappbrowser"
+                                     withString:@"InAppBrowser"];
+
         CDVPluginResult* pluginResult = nil;
 
         if ([self isValidCallbackId:scriptCallbackId]) {
